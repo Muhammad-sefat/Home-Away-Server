@@ -86,6 +86,20 @@ async function run() {
       const result = await roomsCollection.find(query).toArray();
       res.send(result);
     });
+    // get all data by filter email
+    app.get("/my-listings/:email", async (req, res) => {
+      const email = req.params.email;
+      let query = { "host.email": email };
+      const result = await roomsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // save data into db
+    app.post("/room", async (req, res) => {
+      const query = req.body;
+      const result = await roomsCollection.insertOne(query);
+      res.send(result);
+    });
 
     // get single data from roomscollection
 
