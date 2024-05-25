@@ -3,7 +3,12 @@ const app = express();
 require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const {
+  MongoClient,
+  ServerApiVersion,
+  ObjectId,
+  Timestamp,
+} = require("mongodb");
 const jwt = require("jsonwebtoken");
 
 const port = process.env.PORT || 8000;
@@ -48,6 +53,8 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const roomsCollection = client.db("usersDB").collection("rooms");
+    const usersCollection = client.db("usersDB").collection("users");
+
     // auth related api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -76,6 +83,26 @@ async function run() {
       } catch (err) {
         res.status(500).send(err);
       }
+    });
+
+    // save user data in db
+    app.put("/user", async (req, res) => {
+      const user = req.body;
+
+      const isExist = await usersCollection.findOne({ email: user?.email });
+      if (isExist) {
+        return res.send(isExist);
+      }
+      const options = { upsert: true };
+      const query = { email: user?.email };
+      const updateDoc = {
+        $set: {
+          ...user,
+          timestamp: Date.now(),
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
     });
 
     // get all data from roomscollection
