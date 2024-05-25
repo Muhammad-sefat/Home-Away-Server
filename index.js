@@ -88,13 +88,21 @@ async function run() {
     // save user data in db
     app.put("/user", async (req, res) => {
       const user = req.body;
-
+      const query = { email: user?.email };
       const isExist = await usersCollection.findOne({ email: user?.email });
       if (isExist) {
-        return res.send(isExist);
+        if (user.status === "Requested") {
+          const result = await usersCollection.updateOne(query, {
+            $set: { status: user?.status },
+          });
+          return res.send(result);
+        } else {
+          return res.send(isExist);
+        }
       }
+
       const options = { upsert: true };
-      const query = { email: user?.email };
+
       const updateDoc = {
         $set: {
           ...user,
@@ -102,6 +110,36 @@ async function run() {
         },
       };
       const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
+
+    // get user data by email from usersCollection
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      res.send(result);
+    });
+
+    // update user role
+    app.patch("/users/update/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const query = { email };
+
+      const updateDoc = {
+        $set: {
+          ...user,
+          timestamp: Date.now(),
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+    // get all user data from userCollection
+    app.get("/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
