@@ -55,6 +55,27 @@ async function run() {
     const roomsCollection = client.db("usersDB").collection("rooms");
     const usersCollection = client.db("usersDB").collection("users");
 
+    // verifiy admin
+
+    const verifyAdmin = async (req, res, next) => {
+      const user = req.user;
+      const query = { email: user?.email };
+      const result = await usersCollection.findOne(query);
+      if (!result || result?.role !== "admin") {
+        return res.status(401).send({ message: "Forbidden Access!" });
+      }
+      next();
+    };
+    const verifyHost = async (req, res, next) => {
+      const user = req.user;
+      const query = { email: user?.email };
+      const result = await usersCollection.findOne(query);
+      if (!result || result?.role !== "host") {
+        return res.status(401).send({ message: "Forbidden Access!" });
+      }
+      next();
+    };
+
     // auth related api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -138,7 +159,7 @@ async function run() {
     });
 
     // get all user data from userCollection
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -160,7 +181,7 @@ async function run() {
     });
 
     // save data into db
-    app.post("/room", async (req, res) => {
+    app.post("/room", verifyToken, verifyAdmin, async (req, res) => {
       const query = req.body;
       const result = await roomsCollection.insertOne(query);
       res.send(result);
@@ -175,7 +196,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/room/:id", async (req, res) => {
+    app.delete("/room/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await roomsCollection.deleteOne(query);
